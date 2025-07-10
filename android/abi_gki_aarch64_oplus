@@ -60,6 +60,7 @@
   __netif_schedule
   neigh_xmit
   netif_receive_skb_core
+  __netif_schedule
   nf_ct_attach
   nf_ct_delete
   nf_register_net_hook
@@ -127,6 +128,7 @@
   tcf_exts_dump_stats
   tcf_exts_validate
   tcf_queue_work
+  tcp_cong_avoid_ai
   __traceiter_android_rvh_post_init_entity_util_avg
   __traceiter_android_rvh_rtmutex_force_update
   __traceiter_android_vh_account_process_tick_gran

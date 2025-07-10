@@ -476,7 +476,7 @@ Description:	Show status of f2fs superblock in real time.
 
 What:		/sys/fs/f2fs/<disk>/stat/cp_status
 Date:		September 2022
-Contact:	"Chao Yu" <chao.yu@oplus.com>
+Contact:	"Chao Yu" <chao.yu@oppo.com>
 Description:	Show status of f2fs checkpoint in real time.
 
 		=============================== ==============================
@@ -673,14 +673,14 @@ Description:	When DATA SEPARATION is on, it controls the age threshold to indica
 
 What:		/sys/fs/f2fs/<disk>/fault_rate
 Date:		May 2016
-Contact:	"Sheng Yong" <shengyong@oplus.com>
+Contact:	"Sheng Yong" <shengyong@oppo.com>
 Contact:	"Chao Yu" <chao@kernel.org>
 Description:	Enable fault injection in all supported types with
 		specified injection rate.
 
 What:		/sys/fs/f2fs/<disk>/fault_type
 Date:		May 2016
-Contact:	"Sheng Yong" <shengyong@oplus.com>
+Contact:	"Sheng Yong" <shengyong@oppo.com>
 Contact:	"Chao Yu" <chao@kernel.org>
 Description:	Support configuring fault injection type, should be
 		enabled with fault_injection option, fault type value
