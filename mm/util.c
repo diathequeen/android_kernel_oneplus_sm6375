@@ -404,7 +404,7 @@ static unsigned long mmap_base(unsigned long rnd, struct rlimit *rlim_stack)
 	if (gap + pad > gap)
 		gap += pad;
 
-	if (gap < MIN_GAP)
+	if (gap < MIN_GAP && MIN_GAP < MAX_GAP)
 		gap = MIN_GAP;
 	else if (gap > MAX_GAP)
 		gap = MAX_GAP;
@@ -568,9 +568,14 @@ void *kvmalloc_node(size_t size, gfp_t flags, int node)
 	void *ret;
 	bool use_vmalloc = false;
 
+#ifdef CONFIG_OPLUS_FEATURE_UXMEM_OPT
+	if (uxmem_kvmalloc_check_use_vmalloc(size, &kmalloc_flags))
+		goto use_vmalloc_node;
+#endif
 	trace_android_vh_kvmalloc_node_use_vmalloc(size, &kmalloc_flags, &use_vmalloc);
 	if (use_vmalloc)
 		goto use_vmalloc_node;
+
 	/*
 	 * We want to attempt a large physically contiguous block first because
 	 * it is less likely to fragment multiple larger blocks and therefore
@@ -1131,15 +1136,15 @@ void mem_dump_obj(void *object)
 {
 	const char *type;
 
-	if (kmem_valid_obj(object)) {
-		kmem_dump_obj(object);
+	if (kmem_dump_obj(object))
 		return;
-	}
 
 	if (vmalloc_dump_obj(object))
 		return;
 
-	if (virt_addr_valid(object))
+	if (is_vmalloc_addr(object))
+		type = "vmalloc memory";
+	else if (virt_addr_valid(object))
 		type = "non-slab/vmalloc memory";
 	else if (object == NULL)
 		type = "NULL pointer";

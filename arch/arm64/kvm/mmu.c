@@ -981,9 +981,7 @@ int topup_hyp_memcache(struct kvm_vcpu *vcpu)
 	err = __topup_hyp_memcache(mc, kvm_mmu_cache_min_pages(vcpu->kvm),
 				   hyp_mc_alloc_fn,
 				   kvm_host_pa, NULL);
-	if (!err)
-		account_hyp_memcache(mc, prev_nr_pages, vcpu->kvm);
-
+	account_hyp_memcache(mc, prev_nr_pages, vcpu->kvm);
 	return err;
 }
 
@@ -1388,7 +1386,7 @@ static int pkvm_mem_abort(struct kvm_vcpu *vcpu, phys_addr_t fault_ipa,
 		 * prevent try_to_unmap() from succeeding.
 		 */
 		ret = -EIO;
-		goto dec_account;
+		goto unpin;
 	}
 
 	write_lock(&kvm->mmu_lock);
@@ -1397,7 +1395,7 @@ static int pkvm_mem_abort(struct kvm_vcpu *vcpu, phys_addr_t fault_ipa,
 	if (ret) {
 		if (ret == -EAGAIN)
 			ret = 0;
-		goto unpin;
+		goto unlock;
 	}
 
 	ppage->page = page;
@@ -1407,8 +1405,9 @@ static int pkvm_mem_abort(struct kvm_vcpu *vcpu, phys_addr_t fault_ipa,
 
 	return 0;
 
-unpin:
+unlock:
 	write_unlock(&kvm->mmu_lock);
+unpin:
 	unpin_user_pages(&page, 1);
 dec_account:
 	account_locked_vm(mm, 1, false);
