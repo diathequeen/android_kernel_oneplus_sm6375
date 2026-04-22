@@ -233,7 +233,8 @@ config BLK_MQ_STACKING
 
 config BLOCKIO_UX_OPT
 	bool
-	default n
+	depends on !DEBUG_ATOMIC_SLEEP
+	default y
 
 source "block/Kconfig.iosched"
 

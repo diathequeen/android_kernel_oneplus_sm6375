@@ -107,9 +107,9 @@
 #ifdef CONFIG_BLOCKIO_UX_OPT
 #define IF_HAVE_PG_PROTECTED(flag,string) ,{1UL << flag, string}
 #else
+#define IF_HAVE_PG_PROTECTED(flag,string)
 #endif
 
-#define IF_HAVE_PG_PROTECTED(flag,string)
 #ifdef CONFIG_64BIT
 #define IF_HAVE_PG_OEM_RESERVED(_name) ,{1UL << PG_##_name, __stringify(_name)}
 #else

@@ -27,6 +27,7 @@
 #define DEFAULT_CLK_RATE_HZ     1000000
 #define BUS_VECTOR_NAME_LEN     32
 #define MAX_SUPP_MAC		64
+#define UFSHCD_MAX_Q_NR 8
 
 #define UFS_HW_VER_MAJOR_MASK	GENMASK(31, 28)
 #define UFS_HW_VER_MINOR_MASK	GENMASK(27, 16)
@@ -627,6 +628,12 @@ struct cpu_freq_info {
 	unsigned int max_cpu_scale_freq;
 };
 
+struct ufs_qcom_mcq_intr_info {
+	struct ufs_hba *hba;
+	u32 irq;
+	u8 qid;
+};
+
 struct ufs_qcom_host {
 	/*
 	 * Set this capability if host controller supports the QUniPro mode
@@ -757,6 +764,9 @@ struct ufs_qcom_host {
 #if defined(CONFIG_UFSFEATURE)
 	struct ufsf_feature ufsf;
 #endif
+	struct delayed_work iostack_work;
+	int mcq_nr_intr;
+	struct ufs_qcom_mcq_intr_info mcq_intr_info[UFSHCD_MAX_Q_NR];
 };
 
 static inline u32

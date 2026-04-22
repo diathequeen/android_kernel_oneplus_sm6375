@@ -1840,7 +1840,7 @@ static int ufs_qcom_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op,
 static int ufs_qcom_resume(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 {
 	struct ufs_qcom_host *host = ufshcd_get_variant(hba);
-	unsigned long flags;
+	// unsigned long flags;
 	int err;
 #if defined(CONFIG_UFSFEATURE)
 	struct ufsf_feature *ufsf = ufs_qcom_get_ufsf(hba);
@@ -1869,11 +1869,17 @@ static int ufs_qcom_resume(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 	 * scale the clocks/gear, and in the next clock scaling event,
 	 * the clock gating delay timer will be set accordingly.
 	 */
-	if (host->hw_ver.major == 0x6) {
-		spin_lock_irqsave(hba->host->host_lock, flags);
-		hba->clk_gating.delay_ms = 5;
-		spin_unlock_irqrestore(hba->host->host_lock, flags);
-	}
+	/*
+	 * Set clock gating delay timer to 50ms because ufs_gate_work
+	 * starts too frequently. If ufs_qcom_apply_dev_quirks is initialized,
+	 * put ufs_qcom_resume to copy and delete this code
+	 *
+	 * if (host->hw_ver.major == 0x6) {
+	 * 	spin_lock_irqsave(hba->host->host_lock, flags);
+	 * 	hba->clk_gating.delay_ms = 5;
+	 * 	spin_unlock_irqrestore(hba->host->host_lock, flags);
+	 * }
+	 */
 
 	ufs_qcom_log_str(host, "$,%d,%d,%d,%d,%d,%d\n",
 			pm_op, hba->rpm_lvl, hba->spm_lvl, hba->uic_link_state,
@@ -2704,7 +2710,7 @@ static int ufs_qcom_unvote_qos_all(struct ufs_hba *hba)
 
 	qcg = ufs_qos_req->qcg;
 	for (i = 0; i < ufs_qos_req->num_groups; i++, qcg++) {
-		flush_work(&qcg->vwork);
+		cancel_work_sync(&qcg->vwork);
 		if (!qcg->voted)
 			continue;
 		err = ufs_qcom_update_qos_constraints(qcg, QOS_MAX);
@@ -4569,6 +4575,36 @@ cell_put:
 	nvmem_cell_put(nvmem_cell);
 }
 
+/*feature-iostack-v001-begin*/
+#define IOSTACK_WORK_DELAY  (10 * HZ)
+static void iostack_monitor_work(struct work_struct *work)
+{
+	struct ufs_qcom_host *host = container_of(to_delayed_work(work),
+							struct ufs_qcom_host,
+							iostack_work);
+	struct ufs_hba *hba = host->hba;
+	unsigned int mcq_irqs = 0;
+	unsigned int hba_irqs = 0;
+	unsigned int self_block = hba->host->host_self_blocked;
+	u32 i;
+
+	hba_irqs = kstat_irqs_usr(hba->irq);
+	if (is_mcq_enabled(hba)) {
+		for ( i = 0; i < host->mcq_nr_intr; i++ ) {
+			mcq_irqs += kstat_irqs_usr(host->mcq_intr_info[i].irq);
+		}
+	}
+	pr_err("iostack:hba_irqs = %d, mcq_irqs = %d, self-block = %d\n", hba_irqs, mcq_irqs, self_block);
+	schedule_delayed_work(&host->iostack_work, IOSTACK_WORK_DELAY);
+}
+
+static void ufs_iostack_init(struct ufs_qcom_host *host)
+{
+	INIT_DELAYED_WORK(&host->iostack_work, iostack_monitor_work);
+	schedule_delayed_work(&host->iostack_work, IOSTACK_WORK_DELAY);
+}
+/*feature-iostack-v001-end*/
+
 /**
  * ufs_qcom_init - bind phy with controller
  * @hba: host controller instance
@@ -4759,7 +4795,7 @@ static int ufs_qcom_init(struct ufs_hba *hba)
 					  unsigned int,
 					  void __user *))ufs_qcom_ioctl;
 #endif
-
+	ufs_iostack_init(host);
 	ut->tcd = devm_thermal_of_cooling_device_register(dev,
 							  dev->of_node,
 							  "ufs",
