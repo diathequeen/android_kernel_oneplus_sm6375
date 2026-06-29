@@ -28,6 +28,7 @@
 
 #ifdef OPLUS_FEATURE_CHG_BASIC
 #include <soc/oplus/system/boot_mode.h>
+#include <linux/pm_qos.h>
 #endif /* OPLUS_FEATURE_CHG_BASIC */
 
 #define SE_GENI_TEST_BUS_CTRL	0x44
@@ -226,8 +227,10 @@ struct geni_i2c_dev {
 	struct pinctrl_state *geni_gpio_pulldown;
 	struct pinctrl_state *geni_gpio_pullup;
 	struct delayed_work i2c_gpio_reset_work;
+	struct pm_qos_request i2c_qos_request;
 	bool i2c_reset_processing;
 	int err_count_for_reset;
+	bool request_cpu_qos;
 #endif
 	bool i2c_test_dev; /* Set this DT flag to enable test bus dump for an SE */
 };
@@ -2423,7 +2426,10 @@ static int geni_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[],
 			return ret; //Don't perform xfer is cancel failed
 		}
 	}
-
+#ifdef OPLUS_FEATURE_CHG_BASIC
+	if (gi2c->request_cpu_qos)
+		cpu_latency_qos_update_request(&gi2c->i2c_qos_request, 150);
+#endif
 	geni_ios = geni_read_reg(gi2c->base, SE_GENI_IOS);
 	if ((geni_ios & 0x3) != 0x3) { //SCL:b'1, SDA:b'0
 		I2C_LOG_ERR(gi2c->ipcl, false, gi2c->dev,
@@ -2441,6 +2447,10 @@ static int geni_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[],
 			pm_runtime_put_autosuspend(gi2c->dev);
 		}
 		atomic_set(&gi2c->is_xfer_in_progress, 0);
+#ifdef OPLUS_FEATURE_CHG_BASIC
+		if (gi2c->request_cpu_qos)
+			cpu_latency_qos_update_request(&gi2c->i2c_qos_request, PM_QOS_DEFAULT_VALUE);
+#endif
 		return -ENXIO;
 	}
 
@@ -2459,6 +2469,10 @@ static int geni_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[],
 			I2C_LOG_ERR(gi2c->ipcl, true, gi2c->dev,
 				"%s I2C prepare failed: %d\n", __func__, ret);
 			atomic_set(&gi2c->is_xfer_in_progress, 0);
+#ifdef OPLUS_FEATURE_CHG_BASIC
+			if (gi2c->request_cpu_qos)
+				cpu_latency_qos_update_request(&gi2c->i2c_qos_request, PM_QOS_DEFAULT_VALUE);
+#endif
 			return ret;
 		}
 
@@ -2467,6 +2481,10 @@ static int geni_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[],
 			I2C_LOG_ERR(gi2c->ipcl, true, gi2c->dev,
 				"%s lock failed: %d\n", __func__, ret);
 			atomic_set(&gi2c->is_xfer_in_progress, 0);
+#ifdef OPLUS_FEATURE_CHG_BASIC
+			if (gi2c->request_cpu_qos)
+				cpu_latency_qos_update_request(&gi2c->i2c_qos_request, PM_QOS_DEFAULT_VALUE);
+#endif
 			return ret;
 		}
 		I2C_LOG_DBG(gi2c->ipcl, false, gi2c->dev,
@@ -2513,6 +2531,10 @@ geni_i2c_txn_ret:
 			"i2c txn ret:%d freq=%dHz\n", ret, gi2c->clk_freq_out);
 	geni_capture_stop_time(&gi2c->i2c_rsc, gi2c->ipc_log_kpi, __func__,
 			       gi2c->i2c_kpi, start_time, 0, gi2c->clk_freq_out);
+#ifdef OPLUS_FEATURE_CHG_BASIC
+	if (gi2c->request_cpu_qos)
+		cpu_latency_qos_update_request(&gi2c->i2c_qos_request, PM_QOS_DEFAULT_VALUE);
+#endif
 	return ret;
 }
 
@@ -2730,6 +2752,10 @@ static int geni_i2c_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+#ifdef OPLUS_FEATURE_CHG_BASIC
+	if (of_property_read_bool(pdev->dev.of_node, "qcom,request-cpu-qos"))
+		gi2c->request_cpu_qos = true;
+#endif
 	/*
 	 * For LE, clocks, gpio and icb voting will be provided by
 	 * LA. The I2C operates in GSI mode only for LE usecase,
@@ -2816,6 +2842,9 @@ static int geni_i2c_probe(struct platform_device *pdev)
 	device_create_file(gi2c->dev, &dev_attr_capture_kpi);
 	atomic_set(&gi2c->is_xfer_in_progress, 0);
 #ifdef OPLUS_FEATURE_CHG_BASIC
+	if (gi2c->request_cpu_qos)
+		cpu_latency_qos_add_request(&gi2c->i2c_qos_request, PM_QOS_DEFAULT_VALUE);
+
 	gi2c->geni_pinctrl = devm_pinctrl_get(&pdev->dev);
 	if (IS_ERR_OR_NULL(gi2c->geni_pinctrl)) {
 		dev_err(&pdev->dev, "No pinctrl config specified\n");
