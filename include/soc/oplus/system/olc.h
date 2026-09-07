@@ -1,1 +1,1 @@
-../../../../../../vendor/oplus/kernel/dft/include/olc.h
+../../../../../sm6375-modules/oplus/kernel/dft/include/olc.h

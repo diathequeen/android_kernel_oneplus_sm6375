@@ -1,1 +1,1 @@
-../../../../../vendor/oplus/kernel/touchpanel/kernelFwUpdate/kernelFwUpdate.h
+../../../../../sm6375-modules/oplus/kernel/touchpanel/kernelFwUpdate/kernelFwUpdate.h

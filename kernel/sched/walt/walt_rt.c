@@ -173,7 +173,7 @@ retry:
 		}
 
 		for_each_cpu_and(cpu, lowest_mask, &visit_cpus) {
-#elif
+#else
 	for (cluster = 0; cluster < num_sched_clusters; cluster++) {
 		for_each_cpu_and(cpu, lowest_mask, &cpu_array[order_index][cluster]) {
 #endif

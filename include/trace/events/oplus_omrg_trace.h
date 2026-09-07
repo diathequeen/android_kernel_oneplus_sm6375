@@ -1,1 +1,1 @@
-../../../../../vendor/oplus/kernel/cpu/oplus_omrg/oplus_omrg_trace.h
+../../../../sm6375-modules/oplus/kernel/cpu/oplus_omrg/oplus_omrg_trace.h

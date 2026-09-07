@@ -1,1 +1,1 @@
-../../../../../vendor/oplus/kernel/multimedia/feedback/oplus_mm_kevent_fb.h
+../../../../../sm6375-modules/oplus/kernel/multimedia/feedback/oplus_mm_kevent_fb.h

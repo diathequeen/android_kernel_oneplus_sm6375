@@ -1,1 +1,1 @@
-../../../../vendor/oplus/kernel/cpu/cpufreq_bouncing/cpufreq_bouncing.h
+../../../../sm6375-modules/oplus/kernel/cpu/cpufreq_bouncing/cpufreq_bouncing.h

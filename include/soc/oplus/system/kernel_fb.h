@@ -1,1 +1,1 @@
-../../../../../../vendor/oplus/kernel/dft/include/kernel_fb.h
+../../../../../sm6375-modules/oplus/kernel/dft/include/kernel_fb.h
